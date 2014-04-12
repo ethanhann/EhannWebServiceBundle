@@ -16,7 +16,7 @@ class MetadataController extends Controller
         foreach ($routes as $routeName => $route) {
             if ($route->hasDefault('_controller')) {
                 $controller = explode('::', $route->getDefault('_controller'));
-                if (count($controller) === 2 && class_exists($controller[0])) { //} && $controller[0] instanceof IWebServiceController) {
+                if (count($controller) === 2 && class_exists($controller[0])) {
                     $class = new ReflectionClass($controller[0]);
                     $method = $class->getMethod($controller[1]);
 
@@ -29,8 +29,6 @@ class MetadataController extends Controller
                             } catch (MappingException $mappingException) {
                             }
                         }
-
-//                        var_dump($parameters);
                         $services[$routeName] = array(
                             'parameters' => $parameters,
                             'route' => $route
@@ -39,8 +37,6 @@ class MetadataController extends Controller
                 }
             }
         }
-//        die();
-//        var_dump($services);die();
 
         return $this->render('EhannWebServiceBundle:Metadata:index.html.twig', array('services' => $services));
     }

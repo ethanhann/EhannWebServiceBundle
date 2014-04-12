@@ -1,3 +1,0 @@
-EhannWebServiceBundle:
-    resource: "@EhannWebServiceBundle/Controller/"
-    prefix:   /

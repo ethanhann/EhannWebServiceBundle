@@ -1,0 +1,18 @@
+parameters:
+    ehann_web_service.negotiation.negotiator.class: Negotiation\Negotiator
+    ehann_web_service.event_listener.view_listener.class: Ehann\Bundle\WebServiceBundle\EventListener\ViewListener
+    ehann_web_service.converter.doctrine.class: Ehann\Bundle\WebServiceBundle\Request\ParamConverter\DoctrineParamConverter
+
+services:
+    ehann_web_service.negotiation.negotiator:
+        class: "%ehann_web_service.negotiation.negotiator.class%"
+    ehann_web_service.view_listenter:
+        class: "%ehann_web_service.event_listener.view_listener.class%"
+        arguments: ["@jms_serializer", "@ehann_web_service.negotiation.negotiator"]
+        tags:
+            - { name: kernel.event_listener, event: kernel.view, method: onKernelView }
+    ehann_web_service.converter.doctrine.orm:
+        class: "%ehann_web_service.converter.doctrine.class%"
+        arguments: ["@?doctrine"]
+        tags:
+            - { name: request.param_converter, priority: 10, converter: ehann_web_service.doctrine.orm }

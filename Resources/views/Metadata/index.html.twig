@@ -1,0 +1,91 @@
+<html>
+<head>
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="jumbotron">
+    <div class="container">
+        <h1>Metadata</h1>
+
+        {#<p class="lead">For Your Web Services.</p>#}
+    </div>
+</div>
+<div class="container">
+    {% for routeName,service in services %}
+        {% set route = service.route %}
+        {% set parameters = service.parameters %}
+        <h2 class="page-header">{{ routeName|humanize }}</h2>
+        <table class="table table-bordered">
+            <tbody>
+            {#<tr>#}
+                {#<th width="15%">Pattern</th>#}
+                {#<td>{{ route.getPattern() }}</td>#}
+            {#</tr>#}
+            <tr>
+                <th width="15%">Path</th>
+                <td>{{ route.getPath() }}</td>
+            </tr>
+            {#<tr>#}
+            {#<th>Host</th>#}
+            {#<td>{{ route.getHost() }}</td>#}
+            {#</tr>#}
+            {#<tr>#}
+                {#<th>Condition</th>#}
+                {#<td>{{ route.getCondition() }}</td>#}
+            {#</tr>#}
+            <tr>
+                <th>Methods</th>
+                <td>{{ route.getMethods()|join }}</td>
+            </tr>
+            <tr>
+                <th>Requirements</th>
+                <td>{{ route.getRequirements()|join }}</td>
+            </tr>
+            </tbody>
+        </table>
+        {#{% if route.getDefaults() %}#}
+        {#<h3>Defaults</h3>#}
+        {#{% for default in route.getDefaults() %}#}
+        {#<div>{{ default }}</div>#}
+        {#{% endfor %}#}
+        {#{% endif %}#}
+        {#{% if route.getOptions() %}#}
+        {#<h3>Options</h3>#}
+        {#{% for option in route.getOptions() %}#}
+        {#<div>{{ option }}</div>#}
+        {#{% endfor %}#}
+        {#{% endif %}#}
+
+        {#{% if parameters %}#}
+        <h3>Parameters</h3>
+        {#{{ dump(parameters)}}#}
+        {% for parameter in parameters %}
+            {#<div>{{ dump(parameter) }}</div>#}
+            <table class="table table-bordered">
+                <thead>
+                <tr>
+                    <th width="15%">Parameter</th>
+                    <th>Type</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for attribute in parameter %}
+                    <tr>
+                        <td>{{ attribute.fieldName }}</td>
+                        <td>{{ attribute.type }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% endfor %}
+        {#{% endif %}#}
+        {% if route.getSchemes() %}
+            <h3>Schemes</h3>
+            {% for scheme in route.getSchemes() %}
+                <div>{{ scheme }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endfor %}
+</div>
+</body>
+</html>

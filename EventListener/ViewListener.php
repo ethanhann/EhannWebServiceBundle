@@ -27,7 +27,13 @@ class ViewListener
             $request = $event->getRequest();
             $acceptHeader = implode(',', $request->getAcceptableContentTypes());
             $priorities = array('application/json', 'application/xml', 'text/yml', '*/*');
-            $format = $this->negotiator->getBest($acceptHeader, $priorities)->getValue();
+            if (!in_array($acceptHeader, $priorities)) {
+                $msg = sprintf('The response format "%s" is not supported by this resource. ', $acceptHeader);
+                $msg .= sprintf('Acceptable formats are %s', implode(', ', $priorities));
+                throw new NotAcceptableHttpException($msg);
+            }
+            $bestFormat = $this->negotiator->getBest($acceptHeader, $priorities);
+            $format = $bestFormat->getValue();
             $response = $event->getResponse();
             if (!$response) {
                 $response = new Response();
@@ -40,10 +46,6 @@ class ViewListener
                 $response->setContent($this->serializer->serialize($content, 'xml'));
             } else if ($format === 'text/yml') {
                 $response->setContent($this->serializer->serialize($content, 'yml'));
-            } else {
-                $msg = sprintf('The response format "%s" is not supported by this resource. ', $format);
-                $msg .= sprintf('Acceptable formats are %s', implode(', ', $priorities));
-                throw new NotAcceptableHttpException($msg);
             }
             $event->setResponse($response);
         }

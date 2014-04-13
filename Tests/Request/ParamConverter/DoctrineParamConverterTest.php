@@ -2,6 +2,7 @@
 
 namespace Ehann\Bundle\WebServiceBundle\Tests\Request\ParamConverter;
 
+use Ehann\Bundle\WebServiceBundle\Tests\Fixtures\Entity\Document;
 use Symfony\Component\HttpFoundation\Request;
 use Ehann\Bundle\WebServiceBundle\Request\ParamConverter\DoctrineParamConverter;
 use Doctrine\Common\Persistence\ManagerRegistry;
@@ -71,6 +72,45 @@ class DoctrineParamConverterTest extends \PHPUnit_Framework_TestCase
         $this->converter->apply($request, $config);
     }
 
+    /**
+     * @dataProvider idsProvider
+     */
+    public function testApplyWithId($id)
+    {
+        $request = new Request();
+        $request->query->set('id', $id);
+        $class = 'Ehann\Bundle\WebServiceBundle\Tests\Fixtures\Entity\Document';
+        $config = $this->createConfiguration($class, array('id' => 'id'), 'arg');
+        $manager = $this->getMock('Doctrine\Common\Persistence\ObjectManager');
+        $objectRepository = $this->getMock('Doctrine\Common\Persistence\ObjectRepository');
+        $this->registry->expects($this->once())
+            ->method('getManagerForClass')
+            ->with($class)
+            ->will($this->returnValue($manager));
+        $manager->expects($this->once())
+            ->method('getRepository')
+            ->with($class)
+            ->will($this->returnValue($objectRepository));
+        $objectRepository->expects($this->once())
+            ->method('find')
+            ->with($this->equalTo($id))
+            ->will($this->returnValue($object =new \stdClass));
+
+        $ret = $this->converter->apply($request, $config);
+
+        $this->assertTrue($ret);
+        $this->assertSame($object, $request->attributes->get('arg'));
+    }
+
+    public function idsProvider()
+    {
+        return array(
+            array(1),
+            array(0),
+            array('foo'),
+        );
+    }
+
     public function testSupports()
     {
         $config = $this->createConfiguration('stdClass', array());
@@ -99,7 +139,7 @@ class DoctrineParamConverterTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($ret, "Should be supported");
     }
 
-    public function testSupportsWithConfiguredEntityManager()
+    public function testSupportsWithConfiguredgetClassMetadataManager()
     {
         $config = $this->createConfiguration('stdClass', array('entity_manager' => 'foo'));
         $metadataFactory = $this->getMock('Doctrine\Common\Persistence\Mapping\ClassMetadataFactory');

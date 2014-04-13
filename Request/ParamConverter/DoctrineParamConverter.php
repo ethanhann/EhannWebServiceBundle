@@ -54,21 +54,15 @@ class DoctrineParamConverter implements ParamConverterInterface
             } else if ($object === false) {
                 throw new \LogicException('Unable to guess how to get a Doctrine instance from the request information.');
             }
-        } else if ($object === false && $request->isMethod('POST')) {
+        } else if ($object === false && !$request->isMethod('GET')) {
             // Create new object
             $object = new $class; // init from request
-        } else if ($object !== false && $request->isMethod('POST')) {
+        } else if ($object !== false && !$request->isMethod('GET')) {
             // Merge object with new object
-//die('here');
             $newObject = new $class; // init from request
             $object = $this->mergeObjects($class, $options, $newObject, $object);
         }
 
-//        var_dump($object);
-//        die();
-//        if ($request->isMethod('POST') && is_null($object)) {
-//            $object = new $class;
-//        } else
         if (is_null($object) && !$configuration->isOptional()) {
             throw new NotFoundHttpException(sprintf('%s object not found.', $class));
         }
@@ -78,7 +72,7 @@ class DoctrineParamConverter implements ParamConverterInterface
         return true;
     }
 
-    protected function mergeObjects($class, $options, $object1, $object2)
+    public function mergeObjects($class, $options, $object1, $object2)
     {
         $em = $this->getManager($options['entity_manager'], $class);
         $metadata = $em->getClassMetadata($class);

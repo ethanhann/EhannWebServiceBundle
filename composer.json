@@ -18,6 +18,7 @@
         "willdurand/negotiation": "@stable"
     },
     "require-dev": {
+        "symfony/form": "~2.4",
         "symfony/browser-kit": "~2.4",
         "symfony/finder": "~2.4",
         "symfony/expression-language": "~2.4",

@@ -44,54 +44,59 @@ class DoctrineParamConverter implements ParamConverterInterface
             $configuration->setIsOptional(true);
         }
 
-        // find by identifier?
         $object = $this->find($class, $request, $options, $name);
         if ($object === false && $request->isMethod('GET')) {
-            // find by criteria
             $object = $this->findOneBy($class, $request, $options);
-            if ($object === false && $configuration->isOptional()) {
-                $object = null;
-            } else if ($object === false) {
-                throw new \LogicException('Unable to guess how to get a Doctrine instance from the request information.');
+        } else if ($request->isMethod('POST')) {
+            $requestObject = new $class;
+            $keys = array_keys($request->request->all());
+            $options['mapping'] = $keys ? array_combine($keys, $keys) : array();
+            $em = $this->getManager($options['entity_manager'], $class);
+            $metadata = $em->getClassMetadata($class);
+
+            foreach ($options['mapping'] as $parameter => $field) {
+                if ($metadata->hasField($field) || ($metadata->hasAssociation($field) && $metadata->isSingleValuedAssociation($field))) {
+                    $methodSuffix = ucfirst($field);
+                    $setMethodName = 'set' . $methodSuffix;
+                    $value = $request->request->get($parameter);
+                    if ('datetime' === $metadata->getTypeOfField($field)) {
+                        try {
+                            $value = new \DateTime($value);
+                        } catch (\Exception $exception) {
+                            throw new NotFoundHttpException('Invalid date given.', $exception);
+                        }
+                    }
+                    if (method_exists($requestObject, $setMethodName)) {
+                        $requestObject->{$setMethodName}($value);
+                    }
+                }
             }
-        } else if ($object === false && !$request->isMethod('GET')) {
-            // Create new object
-            $object = new $class; // init from request
-        } else if ($object !== false && !$request->isMethod('GET')) {
-            // Merge object with new object
-            $newObject = new $class; // init from request
-            $object = $this->mergeObjects($class, $options, $newObject, $object);
+
+            if ($object !== false) {
+                // Merge
+                foreach ($metadata->getFieldNames() as $fieldName => $fieldType) {
+                    $methodSuffix = ucfirst($fieldName);
+                    $getMethodName = 'get' . $methodSuffix;
+                    $value = $requestObject->{$getMethodName}();
+                    if (is_null($value)) {
+                        $value = $object->{$getMethodName}();
+                    }
+                    $setMethodName = 'set' . $methodSuffix;
+                    if (method_exists($requestObject, $setMethodName)) {
+                        $requestObject->{$setMethodName}($value);
+                    }
+                }
+            }
+            $object = $requestObject;
         }
 
-        if (is_null($object) && !$configuration->isOptional()) {
+        if ($object === false && !$configuration->isOptional()) {
             throw new NotFoundHttpException(sprintf('%s object not found.', $class));
         }
 
         $request->attributes->set($name, $object);
 
         return true;
-    }
-
-    public function mergeObjects($class, $options, $object1, $object2)
-    {
-        $em = $this->getManager($options['entity_manager'], $class);
-        $metadata = $em->getClassMetadata($class);
-
-        $validFields = $metadata->fieldNames;
-        foreach ($validFields as $fieldName => $fieldType) {
-            $methodSuffix = ucfirst($fieldName);
-            $getMethodName = 'get' . $methodSuffix;
-            $value = $object1->{$getMethodName}();
-            if (is_null($value)) {
-                $value = $object2->{$getMethodName}();
-            }
-            $setMethodName = 'set' . $methodSuffix;
-            if (method_exists($object1, $setMethodName)) {
-                $object1->{$setMethodName}($value);
-            }
-        }
-
-        return $object1;
     }
 
     protected function find($class, Request $request, $options, $name)
@@ -153,9 +158,6 @@ class DoctrineParamConverter implements ParamConverterInterface
             if ($metadata->hasField($field) || ($metadata->hasAssociation($field) && $metadata->isSingleValuedAssociation($field))) {
                 if ($request->query->has($parameter)) {
                     $criteria[$field] = $request->query->get($parameter);
-                }
-                if (!array_key_exists($field, $criteria) && $request->request->has($parameter)) {
-                    $criteria[$field] = $request->request->get($parameter);
                 }
                 if ('datetime' === $metadata->getTypeOfField($field)) {
                     try {

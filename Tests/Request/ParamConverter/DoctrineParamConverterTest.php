@@ -53,7 +53,7 @@ class DoctrineParamConverterTest extends \PHPUnit_Framework_TestCase
         $config->expects($this->any())
             ->method('getName')
             ->will($this->returnValue($name));
-        if (null !== $isOptional) {
+        if ($isOptional !== null) {
             $config->expects($this->any())
                 ->method('isOptional')
                 ->will($this->returnValue($isOptional));
@@ -72,12 +72,22 @@ class DoctrineParamConverterTest extends \PHPUnit_Framework_TestCase
         $this->converter->apply($request, $config);
     }
 
+    public function idsProvider()
+    {
+        return array(
+            array(1),
+            array(0),
+            array('foo'),
+        );
+    }
+
     /**
      * @dataProvider idsProvider
      */
-    public function testApplyWithId($id)
+    public function testApplyWithIdAndGet($id)
     {
         $request = new Request();
+        $request->setMethod('GET');
         $request->query->set('id', $id);
         $class = 'Ehann\Bundle\WebServiceBundle\Tests\Fixtures\Entity\Document';
         $config = $this->createConfiguration($class, array('id' => 'id'), 'arg');
@@ -102,13 +112,84 @@ class DoctrineParamConverterTest extends \PHPUnit_Framework_TestCase
         $this->assertSame($object, $request->attributes->get('arg'));
     }
 
-    public function idsProvider()
+    public function testApplyWithNoIdAndPost()
     {
-        return array(
-            array(1),
-            array(0),
-            array('foo'),
+        $request = new Request();
+        $request->setMethod('POST');
+        $request->request->set('title', 'foo');
+        $request->request->set('body', 'bar');
+        $class = 'Ehann\Bundle\WebServiceBundle\Tests\Fixtures\Entity\Document';
+        $manager = $this->getMock('Doctrine\Common\Persistence\ObjectManager');
+        $config = $this->createConfiguration($class, array());
+        $metadata = $this->getMock('Doctrine\Common\Persistence\Mapping\ClassMetadata');
+
+        $this->registry->expects($this->once())
+            ->method('getManagerForClass')
+            ->with($class)
+            ->will($this->returnValue($manager));
+        $manager->expects($this->once())
+            ->method('getClassMetadata')
+            ->with($class)
+            ->will($this->returnValue($metadata));
+        $metadata->expects($this->exactly(2))
+            ->method('hasField')
+            ->with($this->logicalOr(
+                $this->equalTo('title'),
+                $this->equalTo('body')
+            ))
+            ->will($this->returnValue(true));
+
+        $ret = $this->converter->apply($request, $config);
+
+        $this->assertTrue($ret);
+        $this->assertEquals('foo', $request->attributes->get('arg')->getTitle());
+        $this->assertEquals('bar', $request->attributes->get('arg')->getBody());
+    }
+
+    public function testApplyWithMappingAndExclude()
+    {
+        $request = new Request();
+        $request->query->set('foo', 1);
+        $request->query->set('bar', 2);
+        $class = 'Ehann\Bundle\WebServiceBundle\Tests\Fixtures\Entity\Document';
+        $config = $this->createConfiguration(
+            $class,
+            array('mapping' => array('foo' => 'Foo'), 'exclude' => array('bar')),
+            'arg'
         );
+
+        $manager = $this->getMock('Doctrine\Common\Persistence\ObjectManager');
+        $metadata = $this->getMock('Doctrine\Common\Persistence\Mapping\ClassMetadata');
+        $repository = $this->getMock('Doctrine\Common\Persistence\ObjectRepository');
+
+        $this->registry->expects($this->once())
+            ->method('getManagerForClass')
+            ->with($class)
+            ->will($this->returnValue($manager));
+
+        $manager->expects($this->once())
+            ->method('getClassMetadata')
+            ->with($class)
+            ->will($this->returnValue($metadata));
+        $manager->expects($this->once())
+            ->method('getRepository')
+            ->with($class)
+            ->will($this->returnValue($repository));
+
+        $metadata->expects($this->once())
+            ->method('hasField')
+            ->with($this->equalTo('Foo'))
+            ->will($this->returnValue(true));
+
+        $repository->expects($this->once())
+            ->method('findOneBy')
+            ->with($this->equalTo(array('Foo' => 1)))
+            ->will($this->returnValue($object =new \stdClass));
+
+        $ret = $this->converter->apply($request, $config);
+
+//        $this->assertTrue($ret);
+//        $this->assertSame($object, $request->query->get('arg'));
     }
 
     public function testSupports()

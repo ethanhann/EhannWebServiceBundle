@@ -25,9 +25,10 @@ class ViewListener
         $controllerResult = $event->getControllerResult();
         if ($controllerResult instanceof IWebServiceResponse) {
             $request = $event->getRequest();
-            $acceptHeader = implode(',', $request->getAcceptableContentTypes());
+            $acceptableContentTypes = $request->getAcceptableContentTypes();
+            $acceptHeader = implode(',', $acceptableContentTypes);
             $priorities = array('application/json', 'application/xml', 'text/yml', '*/*');
-            if (!in_array($acceptHeader, $priorities)) {
+            if (empty(array_intersect($acceptableContentTypes, $priorities))) {
                 $msg = sprintf('The response format "%s" is not supported by this resource. ', $acceptHeader);
                 $msg .= sprintf('Acceptable formats are %s', implode(', ', $priorities));
                 throw new NotAcceptableHttpException($msg);

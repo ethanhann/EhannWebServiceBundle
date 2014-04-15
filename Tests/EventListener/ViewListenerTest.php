@@ -31,6 +31,7 @@ class ViewListenerTest extends \PHPUnit_Framework_TestCase
             array('application/xml'),
             array('text/yml'),
             array('*/*'),
+            array('unsupported/format,application/json'),
         );
     }
 
@@ -41,6 +42,7 @@ class ViewListenerTest extends \PHPUnit_Framework_TestCase
     {
         $request = new Request();
         $request->headers->set('Accept', $format);
+
         $event = $this->getEvent($request);
 
         $this->listener->onKernelView($event);

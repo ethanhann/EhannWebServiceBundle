@@ -28,7 +28,8 @@ class ViewListener
             $acceptableContentTypes = $request->getAcceptableContentTypes();
             $acceptHeader = implode(',', $acceptableContentTypes);
             $priorities = array('application/json', 'application/xml', 'text/yml', '*/*');
-            if (empty(array_intersect($acceptableContentTypes, $priorities))) {
+            $usableAcceptHeaders = array_intersect($acceptableContentTypes, $priorities);
+            if (empty($usableAcceptHeaders)) {
                 $msg = sprintf('The response format "%s" is not supported by this resource. ', $acceptHeader);
                 $msg .= sprintf('Acceptable formats are %s', implode(', ', $priorities));
                 throw new NotAcceptableHttpException($msg);
